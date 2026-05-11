@@ -88,12 +88,21 @@
   // HTTP — Weegloo-friendly (no Accept: application/json, vendor media type ok)
   // ---------------------------------------------------------------------------
 
-  function httpJson(method, url, body) {
+  function httpJson(method, url, body, extraHeaders) {
     var init = { method: method };
+    var headers = {};
+    if (extraHeaders && typeof extraHeaders === 'object') {
+      for (var hk in extraHeaders) {
+        if (Object.prototype.hasOwnProperty.call(extraHeaders, hk)) {
+          headers[hk] = extraHeaders[hk];
+        }
+      }
+    }
     if (body !== undefined && body !== null) {
-      init.headers = { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(body);
     }
+    if (Object.keys(headers).length) init.headers = headers;
     return fetch(url, init).then(function (res) {
       var ct = res.headers.get('content-type') || '';
       var parser = ct.indexOf('json') >= 0 ? res.json() : res.text();
@@ -320,9 +329,16 @@
       // already pressed "logout".
       var settle = function () { clearTokensInternal('logout'); };
 
-      // README explicitly recommends sending refreshToken with the logout
-      // call. Use DELETE with JSON body (browsers allow body on DELETE).
-      return httpJson('DELETE', url, body).then(function () {
+      // Server expects Authorization: Bearer <accessToken> on logout (same as
+      // ACMA/ACDA). Use getAccessToken() so an expired access token is refreshed
+      // when possible before the DELETE.
+      // README also recommends sending refreshToken in the body. Use DELETE
+      // with JSON body (browsers allow body on DELETE).
+      return getAccessToken().then(function (accessToken) {
+        var authHeaders = {};
+        if (accessToken) authHeaders['Authorization'] = 'Bearer ' + accessToken;
+        return httpJson('DELETE', url, body, authHeaders);
+      }).then(function () {
         settle();
         return true;
       }, function (err) {
@@ -405,6 +421,6 @@
 
 const __WeeglooServiceLogin = {
     init: init,
-    VERSION: '1.0.0'
+    VERSION: '1.0.1'
   };
 export default __WeeglooServiceLogin;

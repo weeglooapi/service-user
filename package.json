@@ -1,6 +1,6 @@
 {
   "name": "weegloo-service-user",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Weegloo ServiceLogin SDK for browser apps — Google OAuth 2.0 sign-in for app-managed members of a Weegloo Space. Pure vanilla JavaScript, zero dependencies.",
   "keywords": [
     "weegloo",
