@@ -1,0 +1,26 @@
+# Tarball is built from the `files` whitelist in package.json, but we still
+# enumerate ignores explicitly as a safety net in case the whitelist is ever
+# loosened in the future.
+
+# IDE / agent
+.cursor/
+.vscode/
+.idea/
+
+# VCS
+.git/
+.gitignore
+
+# Demo / examples
+src/index.html
+
+# Local env / temp / logs
+.env
+.env.*
+.tmp/
+*.log
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

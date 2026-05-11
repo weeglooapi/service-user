@@ -1,35 +1,6 @@
-/*!
- * weegloo-service-login
- *
- * Pure-vanilla JavaScript client for Weegloo's per-Space "ServiceLogin"
- * (app-managed member sign-in via Google OAuth 2.0).
- *
- * Issued Bearer Tokens are valid ONLY against ACMA / ACDA — never CMA / CDA.
- * See: https://docs.weegloo.com/api-docs/cma  (ServiceLogin / ServiceUser*)
- *
- * Usage (script tag):
- *   <script src="dist/weegloo-service-login.js"></script>
- *   <script>
- *     const auth = WeeglooServiceLogin.init({ spaceId: 'YOUR_SPACE_ID' });
- *     // login button:  auth.login()
- *     // callback page: await auth.handleCallback(); location.replace('/');
- *     // call ACMA/ACDA: auth.fetch('https://acda.weegloo.com/v1/spaces/.../...')
- *     // logout:        auth.logout()
- *   </script>
- */
-(function (root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    // AMD
-    define([], factory);
-  } else if (typeof module === 'object' && module.exports) {
-    // CommonJS / Node
-    module.exports = factory();
-  } else {
-    // Browser global
-    root.WeeglooServiceLogin = factory();
-  }
-}(typeof self !== 'undefined' ? self : this, function () {
-  'use strict';
+/*! weegloo-service-login (ESM build) */
+'use strict';
+'use strict';
 
   var DEFAULT_AUTH_BASE_URL = 'https://auth.weegloo.com';
   var DEFAULT_PROVIDER = 'google';
@@ -156,11 +127,7 @@
   }
 
   function buildLoginUrl(authBaseUrl, spaceId, provider) {
-    // Login entry URL — the user is redirected here to start the OAuth flow.
-    // NOTE: do NOT confuse with the "/login/oauth2/code/{provider}" path,
-    // which is Google's redirect URI (registered in Google Cloud as
-    // "Authorized redirect URI"); that one is hit by Google → Weegloo,
-    // not by the browser directly.
+    // Login entry URL — see UMD source for details.
     return joinUrl(authBaseUrl,
       '/v1/spaces/' + encodeURIComponent(spaceId) +
       '/login/oauth2/' + encodeURIComponent(provider));
@@ -263,10 +230,7 @@
     }
 
     function exchangeFor(exchangeToken) {
-      // POST + Content-Type: application/json + JSON body { exchangeToken }.
-      // Browsers cannot send a request body on GET/HEAD (per the Fetch and
-      // XHR specs — fetch throws synchronously, XHR silently nulls the body),
-      // so the token-exchange endpoint is invoked via POST.
+      // POST + JSON body — see UMD source for rationale.
       return httpJson('POST', buildTokenUrl(authBaseUrl, spaceId), {
         exchangeToken: exchangeToken
       });
@@ -288,10 +252,7 @@
       }
       var exchangeToken = cbOptions.exchangeToken || params.get('exchangeToken');
 
-      // SECURITY: strip exchangeToken from the address bar BEFORE making the
-      // network call. The token must NOT linger in window.location / history /
-      // outgoing Referer headers regardless of whether the exchange call
-      // succeeds, fails, hangs, or the user reloads mid-flight.
+      // SECURITY: strip exchangeToken from address bar BEFORE network call.
       if (cbOptions.cleanUrl !== false) {
         stripExchangeTokenFromAddressBar();
       }
@@ -442,8 +403,8 @@
     return instance;
   }
 
-  return {
+const __WeeglooServiceLogin = {
     init: init,
     VERSION: '1.0.0'
   };
-}));
+export default __WeeglooServiceLogin;

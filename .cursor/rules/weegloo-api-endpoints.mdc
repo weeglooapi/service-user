@@ -1,0 +1,143 @@
+---
+id: weegloo-api-endpoints
+type: rule
+title: Weegloo API Base URLs (for development code)
+description: >
+  CMA, CDA, Upload, ACMA, ACDA base URLs, API-Docs links, vendor JSON media type / Accept header rules,
+  CDA published-only semantics (create/update/unpublish/delete), Media list mimeGroup query filters,
+  ServiceLogin Bearer Token scope (ACMA/ACDA only), ACMA ownership + `isAdmin`, ACDA per-member
+  read scope with `ServiceUser.roleOverride`, service-type → API selection pointer, and MCP vs
+  direct API usage. Follow when calling Weegloo APIs from application code.
+---
+
+rules:
+  - section: AI Agent vs application code (mandatory)
+    items:
+      - **AI Agent (Cursor, Claude, etc.)** must **not** call these HTTP APIs directly. Use **Weegloo MCP tools** only.
+      - **Application / development code** (frontend, backend, scripts) may call the APIs using the base URLs and paths documented below.
+      - APIs are for **implementation in project code**; agents integrate via **MCP**, not raw REST calls.
+
+  - section: Base URL by API Type (never guess or infer)
+    items:
+      - Weegloo APIs include **CMA**, **CDA**, **Upload**, and when the app manages its own members, **ACMA** and **ACDA** instead of CMA/CDA for those flows.
+      - **CMA** (Content Management API): Read, create, update, delete. Base URL: `https://cma.weegloo.com`
+      - **CDA** (Content Delivery API): Cache-based, read-only. Base URL: `https://cda.weegloo.com`
+      - **Upload**: File uploads. Base URL: `https://upload.weegloo.com`
+      - **ACMA** (App Content Management API): Use when the app uses **its own member management** instead of Weegloo’s default model. In that case use **ACMA instead of CMA** for the relevant operations. Base URL: `https://acma.weegloo.com`
+      - **ACDA** (App Content Delivery API): Same scenario—**app-managed members**. Use **ACDA instead of CDA** for delivery/read paths that map to that model. Base URL: `https://acda.weegloo.com`
+      - API paths typically use `/v1/...`, e.g. `https://cda.weegloo.com/v1` for CDA.
+
+  - section: Accept header and JSON media type (mandatory for HTTP clients)
+    items:
+      - Weegloo API responses use **`Content-Type: application/vnd.com.weegloo.v1+json;charset=UTF-8`**, **not** plain `application/json`.
+      - **Do not** send **`Accept: application/json`**. Negotiation against that value does **not** match Weegloo’s vendor media type and can cause **406 Not Acceptable** or other failures.
+      - **Preferred:** **omit** the `Accept` header on requests (e.g. `fetch` without `Accept`) unless you have a specific reason to set it.
+      - **If** you must set `Accept`, use the same vendor type as the API: **`application/vnd.com.weegloo.v1+json;charset=UTF-8`** (exactly—with charset as the service expects).
+      - When implementing wrappers (axios instances, shared `fetch` helpers), ensure defaults do **not** force `Accept: application/json`. Strip or override client-wide JSON defaults for Weegloo hosts.
+
+  - section: API documentation (OpenAPI) per API
+    items:
+      - **Canonical URLs only here.** Do **not** paste duplicate **`docs.weegloo.com/api-docs/...`** links into other `.cursor` rules or skills—reference **this section** so paths stay maintainable.
+      - **API docs** (OpenAPI / operations—human browsing):
+      - **CMA**: `https://docs.weegloo.com/api-docs/cma`
+      - **CDA**: `https://docs.weegloo.com/api-docs/cda`
+      - **Upload**: `https://docs.weegloo.com/api-docs/upload`
+      - **ACMA**: `https://docs.weegloo.com/api-docs/acma`
+      - **ACDA**: `https://docs.weegloo.com/api-docs/acda`
+      - Use these for **`FieldValidation`**, **`CreateSpaceRole`**, **`CreateDeliveryAccessToken`**, **`CreateContentType`**, **`PATCH`** paths, query parameters, and any operation-level detail.
+
+  - section: CMA vs CDA selection (standard Weegloo member model)
+    items:
+      - Most web services only need **read** access when content is managed in Weegloo Console. Use **CDA** in that case.
+      - CMA supports full CRUD; CDA is preferable for read-only use (cache-optimized).
+      - Do not confuse CMA and CDA. Use CDA for read-only delivery; CMA for management operations.
+
+  - section: CDA — published snapshot only (vs CMA drafts)
+    items:
+      - **CDA** returns **only published** resources. Field values are the **published snapshot** at the time of publish—not necessarily the latest **draft** visible in CMA.
+      - **Appear on CDA:** **Create** the resource in **CMA** (or the console), then **Publish**. Until publish completes, the resource is **not** visible on **CDA**.
+      - **Refresh CDA after edits:** **Update** in **CMA**, then **Publish** again. CDA reflects changes **only after** that publish (subject to cache; see product docs for invalidation).
+      - **Unpublish** removes the resource from **CDA** (delivery) but does **not** delete it from **CMA**—it may remain as an unpublished draft. To **remove the resource entirely**, call the **Delete** API (or equivalent management operation) per **OpenAPI**, not “unpublish only.”
+      - **ACDA** follows the same **published-delivery** idea for app-managed spaces—confirm operation names in **API docs** (see **API documentation** section above).
+      - Narrative and troubleshooting: **`weegloo-cda-publish`** skill.
+
+  - section: ACMA / ACDA vs CMA / CDA (app-managed members)
+    items:
+      - Most web services only need **read** access, since content create/update/delete is managed in Weegloo Console. Use **CDA** or **ACDA** in that case.
+      - CMA/ACMA supports read, create, update, and delete, but CDA is preferable for read-only use due to its cache-based design.
+      - Do not confuse CMA/ACMA and CDA/ACDA. Use CDA/ACDA for read-only, CMA/ACMA for management operations.
+      - When the product uses **app-owned member management** (not the default Weegloo member flow), **do not use CMA/CDA** for those features—use **ACMA** and **ACDA** as documented in **API docs** and product docs.
+      - **ACMA** replaces **CMA** for that integration style; **ACDA** replaces **CDA** for the corresponding delivery/read usage.
+      - **Caller identity (mandatory):** ACMA and ACDA accept **only** a **Bearer Token issued by `ServiceLogin`** (the app-managed member sign-in flow). They do **not** accept Weegloo console / CMA tokens, Personal Access Tokens, or DeliveryAccessTokens. Detail: **`weegloo-service-login`** skill.
+
+  - section: ACMA — ownership and `isAdmin` (app-managed member CRUD scope)
+    items:
+      - **Default scope:** a `ServiceUser` may CRUD **only the resources they created**. Resources created by other members are not editable or deletable from this member's session.
+      - **Cross-member delete via `isAdmin`:** when **`ServiceUser.isAdmin === true`**, that member may **additionally delete** resources created by **other** `ServiceUser`s — **within** the actions permitted by their `ServiceUserRole`. This **adds delete-of-others on top of** the default own-resource CRUD; the member does **not** lose their own-resource capabilities.
+      - **`isAdmin` scope is narrow.** It elevates **delete** on others' resources only. It does **not** grant **update** or **read-for-write** on others' resources, and it does **not** elevate the member to a Weegloo console / CMA admin. It also does not enable operations the underlying `ServiceUserRole` does not permit (e.g. if the role cannot delete this `ContentType` at all, `isAdmin` does not unlock it).
+      - **Do not** use ACMA to model team-staff editing of the whole Space. That is a **CMA** operation by a Weegloo console user—see the *Service type → API selection* section.
+
+  - section: ACDA — per-member read scope and role overrides
+    items:
+      - ACDA returns **only** published resources **assigned to** the calling `ServiceUser` (per product/role rules). Unlike CDA (one shared, public, token-scoped read set), ACDA's result set is **per member**.
+      - **Per-member customization:** set **`ServiceUser.roleOverride`** to point at a different `ServiceUserRole` to grant a single member access different from `ServiceLogin.sys.defaultRole`—useful for tiered subscriptions, beta cohorts, moderators, etc.
+      - **Effective role resolution:** `roleOverride` (if set) wins over `ServiceLogin.sys.defaultRole`. `isAdmin` is **additive** and **narrow**: on **ACMA**, it adds **delete** of other members' resources within the role's permitted operations. It does **not** widen ACDA's per-member read assignment, and it does **not** grant cross-member **update** or **read-for-write** on ACMA.
+      - Publish semantics from *CDA — published snapshot only* apply to ACDA as well; see **`weegloo-cda-publish`** skill.
+
+  - section: ServiceLogin (app-managed members) — Bearer Token scope
+    items:
+      - **`ServiceLogin`** is a per-Space configuration that lets the product run its own member directory (separate from Weegloo console accounts) — typically via an OAuth provider (Google, etc.).
+      - Resources involved: **`ServiceLogin`** (holds `sys.defaultRole`), **`ServiceUserRole`** (permission rule set for app-managed members), **`ServiceUser`** (one per end-user; optional **`roleOverride`** and **`isAdmin`**).
+      - A successful ServiceLogin sign-in returns a **Bearer Token** that authorizes **ACMA** and **ACDA** **only**. It is **not** valid for **CMA**, **CDA**, or **Upload**.
+      - Do **not** confuse `ServiceUserRole` (app-managed members → ACMA / ACDA) with `SpaceRole` (Weegloo console users / `DeliveryAccessToken` → CMA / CDA).
+      - Mechanics, configuration, and security details: **`weegloo-service-login`** skill.
+
+  - section: Service type → API selection (decision pointer)
+    items:
+      - **Public read-only site:** **CDA** with a least-privilege `DeliveryAccessToken` (`SpaceRole`). No ServiceLogin.
+      - **Public site + team admin UI:** **CDA** for visitors; **CMA** for the team via **`weegloo-web-hosting-fe-login`** (Weegloo console FE login). No ServiceLogin.
+      - **Members-only read service:** **ServiceLogin** + **ACDA**. Configure `ServiceLogin.sys.defaultRole` to a least-privilege `ServiceUserRole`.
+      - **Members read + write service:** **ServiceLogin** + **ACMA** (member writes, scoped to own resources; moderators via `isAdmin`) + **ACDA** (member reads). Use **CDA** in addition for any resources that should also be readable by anonymous visitors.
+      - **Composite service:** combine the above per caller identity. Each path uses the API matching the caller's identity for that path; tokens **do not** cross identity boundaries.
+      - Full recipes, role-budget per service type, and anti-patterns: **`weegloo-service-architecture`** skill.
+
+  - section: CDA requirements (Delivery Access Token)
+    items:
+      - CDA requires a **Delivery Access Token** (and ACDA its equivalent when using that API—follow **API docs** and env conventions for the project).
+      - When **creating** a `DeliveryAccessToken` via CMA (`cma_CreateDeliveryAccessToken`), follow the **`weegloo-delivery-access-token`** skill: **never** bind **Administrator** `SpaceRole`; prefer a **read-only** role for required `ContentType`s only, or **ask the user** to pick a role after listing `SpaceRole`s.
+      - **Local Next.js development:** use **`.env.local`** with **`NEXT_PUBLIC_WEEGLOO_DELIVERY_ACCESS_TOKEN`** (and other `NEXT_PUBLIC_WEEGLOO_*` vars) — see `.env.example`.
+      - **Weegloo WebHosting (static export):** the browser loads **`./env.js`**, which assigns **`window.__ENV__`**. Use **`DELIVERY_ACCESS_TOKEN`** there (same token role as `NEXT_PUBLIC_WEEGLOO_DELIVERY_ACCESS_TOKEN`, different key name). Also set **`WEEGLOO_CDA_BASE_URL`**, **`WEEGLOO_SPACE_ID`**, **`WEEGLOO_LOCALE`** as strings. This is **not** a “hidden secret” in this pattern—installers swap values in `env.js` after copying a template.
+      - **Mapping:** `NEXT_PUBLIC_WEEGLOO_CDA_BASE_URL` → `WEEGLOO_CDA_BASE_URL`; `NEXT_PUBLIC_WEEGLOO_SPACE_ID` → `WEEGLOO_SPACE_ID`; `NEXT_PUBLIC_WEEGLOO_LOCALE` → `WEEGLOO_LOCALE`; `NEXT_PUBLIC_WEEGLOO_DELIVERY_ACCESS_TOKEN` → **`DELIVERY_ACCESS_TOKEN`**.
+      - Application code should read **`window.__ENV__` first** when present, then fall back to **`process.env.NEXT_PUBLIC_*`** for local dev (see `weegloo-web-hosting-rules`).
+
+  - section: CMA / ACMA document updates (PATCH, PUT)
+    items:
+      - For **ContentType**, **Content**, and **Media**, CMA and ACMA REST APIs support **partial updates** via **`PATCH`** using **[RFC 6902 JSON Patch](https://www.rfc-editor.org/rfc/rfc6902)** (array of `op` / `path` / `value` / `from` operations, JSON Pointer paths per RFC 6901).
+      - For those **`PATCH`** requests, the **`Content-Type`** request header **must** be **`application/json-patch+json`** (not plain `application/json`).
+      - **`PUT`** may still be used with the **full** resource body, or — where the OpenAPI contract allows — with a **partial** body containing only the fields or structure you intend to change.
+      - Exact **`PATCH`** paths and whether a given **`PUT`** is full or partial replacement are defined per operation in **OpenAPI** on **CMA** / **ACMA**—see **API documentation** section above (`https://docs.weegloo.com/api-docs/cma` or `https://docs.weegloo.com/api-docs/acma`).
+      - Agent-oriented detail and usage notes live in the **`weegloo-cma-json-patch`** skill.
+
+  - section: CMA Media list — filter by `mimeGroups` (logical asset type)
+    items:
+      - On **`GET /v1/spaces/{spaceId}/medias`** (CMA), add a query parameter to keep only assets whose file falls into **one logical category**—e.g. **images**, **video**, **audio**, **PDFs**, **archives**, **code**—instead of listing all Media and filtering in the client.
+      - **Parameter shape:** **`fields.file.{locale}.mimeGroups={MimeGroup}`**. The **`{locale}`** segment must match the locale key of the **`fields.file`** map for that space (example: **`fields.file.en-US.mimeGroups=Image`**).
+      - **Full URL example (fragment):** **`/v1/spaces/{spaceId}/medias?limit=20&order=-sys.createdAt&fields.file.en-US.mimeGroups=Image`** — prepend the **CMA** base URL from this rule.
+      - Pick the **locale** your app uses for **`fields.file`** (often the space **default locale** for a single-locale UI).
+      - **Allowed `MimeGroup` enum values** (use the identifier exactly): **`Attachment`**, **`Plaintext`**, **`Image`**, **`Audio`**, **`Video`**, **`RichText`**, **`Presentation`**, **`Spreadsheet`**, **`PdfDocument`**, **`Archive`**, **`Code`**, **`Markup`**.
+      - For **pagination**, send **`mimeGroups`** on the **first** request, then follow **`links.next`** so the same filter applies on every page (**`weegloo-list-pagination`** skill).
+
+  - section: Common Mistakes to Avoid
+    items:
+      - Do not infer or guess URLs. Use only the base URLs listed in this rule.
+      - Wrong: `https://cda-weegloo.com` (wrong host pattern), using CMA base URL for CDA traffic.
+      - Correct: For CDA content fetch, use `https://cda.weegloo.com/v1/spaces/{spaceId}/...`.
+      - Wrong: `Accept: application/json` on Weegloo API requests. Prefer **no** `Accept` header, or **`application/vnd.com.weegloo.v1+json;charset=UTF-8`** if `Accept` is required.
+
+  - section: Base URL quick reference
+    items:
+      - CMA: `https://cma.weegloo.com`
+      - CDA: `https://cda.weegloo.com`
+      - Upload: `https://upload.weegloo.com`
+      - ACMA: `https://acma.weegloo.com`
+      - ACDA: `https://acda.weegloo.com`
