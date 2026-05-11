@@ -1,0 +1,11 @@
+{
+  "name": "weegloo-service-user",
+  "version": "1.0.0",
+  "description": "- Weegloo 의 Space 에 '자체 회원' 관리기능을 의미함\r - 이는 Weegloo 의 서비스 사용자와는 다른 기능임\r - Weegloo 이용자가 자신의 Space 에 '회원 가입/관리' 기능을 추가할때 필요한 것임",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
