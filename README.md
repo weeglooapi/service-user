@@ -1,11 +1,11 @@
 # weegloo-service-user
 
-Vanilla-JavaScript browser SDK for **Weegloo ServiceLogin** — the per-Space, app-managed member sign-in feature of [Weegloo](https://weegloo.com). Zero runtime dependencies. Ships UMD, ESM, and minified builds.
+Vanilla-JavaScript browser SDK for **Weegloo ServiceLogin** - the per-Space, app-managed member sign-in feature of [Weegloo](https://weegloo.com). Zero runtime dependencies. Ships UMD, ESM, and minified builds.
 
 - Drives the full Google OAuth 2.0 flow: redirect → callback → token exchange → refresh → logout.
 - Stores tokens in `sessionStorage` (or `localStorage`, or a custom adapter).
 - Auto-refreshes the `accessToken` before it expires.
-- Removes `exchangeToken` from the address bar **before** the network call (success, failure, or reload — never leaks).
+- Removes `exchangeToken` from the address bar **before** the network call (success, failure, or reload - never leaks).
 - Auto-injects `Authorization: Bearer …` for ACMA / ACDA calls.
 
 > The Bearer Token issued by ServiceLogin is valid **only** against `acma.weegloo.com` / `acda.weegloo.com`. It is **not** valid against `cma.weegloo.com` / `cda.weegloo.com`.
@@ -30,15 +30,29 @@ const auth = WeeglooServiceLogin.init({ spaceId: 'YOUR_SPACE_ID' });
 After publishing, jsDelivr and unpkg serve the same file automatically:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/weegloo-service-user@1/dist/weegloo-service-login.min.js"></script>
+<!-- Latest patch of the major version (auto-updates within v1.x) -->
+<script src="https://cdn.jsdelivr.net/npm/weegloo-service-user@1/dist/service-login.min.js"></script>
 <!-- or -->
-<script src="https://unpkg.com/weegloo-service-user@1/dist/weegloo-service-login.min.js"></script>
+<script src="https://unpkg.com/weegloo-service-user@1/dist/service-login.min.js"></script>
 <script>
   const auth = WeeglooServiceLogin.init({ spaceId: 'YOUR_SPACE_ID' });
 </script>
 ```
 
 The library exposes a global `WeeglooServiceLogin` when loaded via `<script>`.
+
+#### Pinning to an immutable revision
+
+Each release also ships content-addressed copies whose bytes never change for a given hash, suitable for `integrity="sha384-…"` pinning and aggressive CDN caching. Pick the build you want and append `.<hash>` before the file extension:
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/weegloo-service-user@1.0.0/dist/service-login.<hash>.min.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"></script>
+```
+
+The exact hash and SRI value for the version you installed are recorded in `dist/manifest.json` (`require('weegloo-service-user/manifest')` from Node, or the same path on jsDelivr).
 
 ---
 
@@ -49,7 +63,7 @@ The library exposes a global `WeeglooServiceLogin` when loaded via `<script>`.
 <button id="logout">Logout</button>
 <button id="load">Load via ACDA</button>
 
-<script src="https://cdn.jsdelivr.net/npm/weegloo-service-user@1/dist/weegloo-service-login.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/weegloo-service-user@1/dist/service-login.min.js"></script>
 <script>
   const SPACE_ID = 'YOUR_SPACE_ID';
   const auth = WeeglooServiceLogin.init({ spaceId: SPACE_ID });
@@ -76,7 +90,7 @@ The library exposes a global `WeeglooServiceLogin` when loaded via `<script>`.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `spaceId` | `string` | — (**required**) | Your Weegloo Space ID. |
+| `spaceId` | `string` | - (**required**) | Your Weegloo Space ID. |
 | `provider` | `string` | `'google'` | OAuth provider path segment. |
 | `authBaseUrl` | `string` | `'https://auth.weegloo.com'` | Base URL of the auth server. |
 | `storage` | `'session' \| 'local' \| object` | `'session'` | Token storage. The `'session'` default uses `sessionStorage` and is the recommended security posture. A custom adapter `{ getItem, setItem, removeItem }` is also accepted. |
@@ -106,20 +120,20 @@ Calling `init()` multiple times with the same `spaceId | authBaseUrl` pair retur
 
 - **`exchangeToken` is removed from the URL before any network request.** Even if the token-exchange call fails, hangs, or the user reloads mid-flight, the token never lingers in `window.location`, the session-history stack, or outgoing `Referer` headers.
 - The default `sessionStorage` discards tokens when the tab closes. Use `storage: 'local'` only when persistent sign-in is a deliberate UX choice.
-- The Bearer Token authorizes **ACMA** and **ACDA** only. Do not send it to CMA, CDA, or Upload — the server will reject it.
+- The Bearer Token authorizes **ACMA** and **ACDA** only. Do not send it to CMA, CDA, or Upload - the server will reject it.
 - The library never sets `Accept: application/json` on its outgoing requests because Weegloo APIs negotiate the vendor media type `application/vnd.com.weegloo.v1+json`.
 
 ---
 
 ## What is ServiceLogin?
 
-ServiceLogin is the **per-Space, app-managed member directory** of a Weegloo Space. It is *separate* from Weegloo Console accounts (which manage the Space itself). Use it to add member sign-up / sign-in to a product you ship on top of a Weegloo Space — for example, a members-only board, a paid-content portal, or any community where readers must sign in.
+ServiceLogin is the **per-Space, app-managed member directory** of a Weegloo Space. It is *separate* from Weegloo Console accounts (which manage the Space itself). Use it to add member sign-up / sign-in to a product you ship on top of a Weegloo Space - for example, a members-only board, a paid-content portal, or any community where readers must sign in.
 
 ### Resource model
 
-- **`ServiceLogin`** — the Space's per-product login configuration (enabled OAuth providers, callback URL, default role).
-- **`ServiceUserRole`** — the permission rule set assigned to app-managed members. Defines what they may read or write through ACMA / ACDA.
-- **`ServiceUser`** — one record per app-managed member. May carry an optional `roleOverride` (a different `ServiceUserRole` for that specific member) and an optional `isAdmin: true` (adds *delete* of other members' resources, scoped to the role's permissions).
+- **`ServiceLogin`** - the Space's per-product login configuration (enabled OAuth providers, callback URL, default role).
+- **`ServiceUserRole`** - the permission rule set assigned to app-managed members. Defines what they may read or write through ACMA / ACDA.
+- **`ServiceUser`** - one record per app-managed member. May carry an optional `roleOverride` (a different `ServiceUserRole` for that specific member) and an optional `isAdmin: true` (adds *delete* of other members' resources, scoped to the role's permissions).
 
 A successful sign-in returns a Bearer Token tied to the corresponding `ServiceUser`. That token authorizes **ACMA** and **ACDA** only.
 
@@ -133,14 +147,14 @@ A successful sign-in returns a Bearer Token tied to the corresponding `ServiceUs
 2. Add `https://auth.weegloo.com` to **Authorized JavaScript origins**.
 3. Add `https://auth.weegloo.com/v1/spaces/{spaceId}/login/oauth2/code/google` to **Authorized redirect URIs**, where `{spaceId}` is the Weegloo Space ID hosting the ServiceLogin.
 
-> Note: the `/login/oauth2/code/{provider}` path is the **redirect URI** that Google calls Weegloo at — it is *different* from the URL the SDK navigates the browser to (`/login/oauth2/{provider}`, no `code` segment).
+> Note: the `/login/oauth2/code/{provider}` path is the **redirect URI** that Google calls Weegloo at - it is *different* from the URL the SDK navigates the browser to (`/login/oauth2/{provider}`, no `code` segment).
 
 ### 2. Configure ServiceLogin in the Weegloo Console
 
 1. In the target Space, **create a `ServiceLogin`** record.
 2. Set `clientId` / `clientSecret` to the values issued by Google Cloud above.
 3. Set `defaultRole` to a `Refer` of a `ServiceUserRole` you have created in advance with the appropriate permissions. Per-member overrides are possible later via `ServiceUser.roleOverride`.
-4. Set `callbackUrl` to a URL on **your own product** that the SDK can intercept — Weegloo will redirect the browser there with `?exchangeToken=...` after a successful Google sign-in. The SDK's `handleCallback()` consumes this parameter to obtain a Bearer Token usable against ACMA / ACDA.
+4. Set `callbackUrl` to a URL on **your own product** that the SDK can intercept - Weegloo will redirect the browser there with `?exchangeToken=...` after a successful Google sign-in. The SDK's `handleCallback()` consumes this parameter to obtain a Bearer Token usable against ACMA / ACDA.
 
 ---
 
@@ -181,19 +195,23 @@ The SDK encapsulates all of this; you only need to read it if you are debugging 
    ```json
    { "refreshToken": "YYYYYYYY" }
    ```
-   Sending the `refreshToken` is strongly recommended so the server can invalidate it — calling without a body is permitted but leaves the refresh token usable until natural expiry.
+   Sending the `refreshToken` is strongly recommended so the server can invalidate it - calling without a body is permitted but leaves the refresh token usable until natural expiry.
 
 ---
 
 ## Builds
 
-| File | Format | Use case |
-|---|---|---|
-| `dist/weegloo-service-login.js` | UMD | `<script>` tag, CommonJS `require`, AMD |
-| `dist/weegloo-service-login.esm.js` | ES Module | Modern bundlers, `import` |
-| `dist/weegloo-service-login.min.js` | UMD (minified) | Production `<script>` / CDN |
+Each build ships in two flavours: a **mutable "latest" alias** that auto-updates with patch releases, and a **content-addressed immutable revision** safe for SRI pinning.
 
-The same source under `src/weegloo-service-login.js` is the canonical implementation; the `dist/` files are built from it.
+| Format | Latest alias | Immutable revision | Use case |
+|---|---|---|---|
+| UMD | `dist/service-login.js` | `dist/service-login.<hash>.js` | `<script>` tag, CommonJS `require`, AMD |
+| ES Module | `dist/service-login.esm.js` | `dist/service-login.<hash>.esm.js` | Modern bundlers, `import` |
+| UMD (minified) | `dist/service-login.min.js` | `dist/service-login.<hash>.min.js` | Production `<script>` / CDN |
+
+`dist/manifest.json` records each build's `<hash>` (sha256, first 8 hex chars), byte size, and the `sha384` SRI integrity string ready to drop into `<script integrity="…">`.
+
+The single source of truth is `src/service-login.js`. Run `npm run build` to regenerate the `dist/` outputs from it.
 
 ## License
 

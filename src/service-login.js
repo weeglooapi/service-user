@@ -1,18 +1,18 @@
 /*!
- * weegloo-service-login
+ * weegloo-service-user - Weegloo ServiceLogin SDK
  *
  * Pure-vanilla JavaScript client for Weegloo's per-Space "ServiceLogin"
  * (app-managed member sign-in via Google OAuth 2.0).
  *
- * Issued Bearer Tokens are valid ONLY against ACMA / ACDA — never CMA / CDA.
+ * Issued Bearer Tokens are valid ONLY against ACMA / ACDA - never CMA / CDA.
  * See: https://docs.weegloo.com/api-docs/cma  (ServiceLogin / ServiceUser*)
  *
  * Usage (script tag):
- *   <script src="dist/weegloo-service-login.js"></script>
+ *   <script src="dist/service-login.min.js"></script>
  *   <script>
  *     const auth = WeeglooServiceLogin.init({ spaceId: 'YOUR_SPACE_ID' });
  *     // login button:  auth.login()
- *     // callback page: await auth.handleCallback(); location.replace('/');
+ *     // callback page: await auth.handleCallback();
  *     // call ACMA/ACDA: auth.fetch('https://acda.weegloo.com/v1/spaces/.../...')
  *     // logout:        auth.logout()
  *   </script>
@@ -114,7 +114,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // HTTP — Weegloo-friendly (no Accept: application/json, vendor media type ok)
+  // HTTP - Weegloo-friendly (no Accept: application/json, vendor media type ok)
   // ---------------------------------------------------------------------------
 
   function httpJson(method, url, body, extraHeaders) {
@@ -165,7 +165,7 @@
   }
 
   function buildLoginUrl(authBaseUrl, spaceId, provider) {
-    // Login entry URL — the user is redirected here to start the OAuth flow.
+    // Login entry URL - the user is redirected here to start the OAuth flow.
     // NOTE: do NOT confuse with the "/login/oauth2/code/{provider}" path,
     // which is Google's redirect URI (registered in Google Cloud as
     // "Authorized redirect URI"); that one is hit by Google → Weegloo,
@@ -263,7 +263,7 @@
         throw new Error('WeeglooServiceLogin.login: requires a browser window.');
       }
       var url = buildLoginUrl(authBaseUrl, spaceId, (loginOptions && loginOptions.provider) || provider);
-      // Optional return target — not part of Weegloo OAuth spec, but we let the
+      // Optional return target - not part of Weegloo OAuth spec, but we let the
       // caller stash a value to read after handleCallback().
       if (loginOptions && loginOptions.returnTo) {
         try { storage.setItem(storageKey + ':returnTo', String(loginOptions.returnTo)); } catch (_e) { /* noop */ }
@@ -274,7 +274,7 @@
     function exchangeFor(exchangeToken) {
       // POST + Content-Type: application/json + JSON body { exchangeToken }.
       // Browsers cannot send a request body on GET/HEAD (per the Fetch and
-      // XHR specs — fetch throws synchronously, XHR silently nulls the body),
+      // XHR specs - fetch throws synchronously, XHR silently nulls the body),
       // so the token-exchange endpoint is invoked via POST.
       return httpJson('POST', buildTokenUrl(authBaseUrl, spaceId), {
         exchangeToken: exchangeToken
@@ -325,7 +325,7 @@
       pendingRefresh = httpJson('POST', buildRefreshUrl(authBaseUrl, spaceId), {
         refreshToken: current.refreshToken
       }).then(function (tokens) {
-        // Some servers may omit refreshToken on refresh — keep the previous one.
+        // Some servers may omit refreshToken on refresh - keep the previous one.
         if (tokens && !tokens.refreshToken && current.refreshToken) {
           tokens.refreshToken = current.refreshToken;
           if (current.refreshExpiresAt && !tokens.refreshExpiresAt) {
@@ -364,7 +364,7 @@
       var url = buildTokenUrl(authBaseUrl, spaceId);
       var body = (current && current.refreshToken) ? { refreshToken: current.refreshToken } : null;
 
-      // Always wipe local state, even if the server call fails — the user has
+      // Always wipe local state, even if the server call fails - the user has
       // already pressed "logout".
       var settle = function () { clearTokensInternal('logout'); };
 
@@ -378,6 +378,7 @@
         if (accessToken) authHeaders['Authorization'] = 'Bearer ' + accessToken;
         return httpJson('DELETE', url, body, authHeaders);
       }).then(function () {
+      // README explicitly recommends sending refreshToken with the logout
         settle();
         return true;
       }, function (err) {
@@ -405,7 +406,7 @@
         }
         if (!hasAuth) headers['Authorization'] = 'Bearer ' + token;
 
-        // Strip a forced Accept: application/json — Weegloo serves a vendor
+        // Strip a forced Accept: application/json - Weegloo serves a vendor
         // media type. (See weegloo-api-endpoints rule.)
         for (var k2 in headers) {
           if (k2.toLowerCase() === 'accept' && /application\/json\b/i.test(headers[k2]) &&
@@ -460,6 +461,6 @@
 
   return {
     init: init,
-    VERSION: '1.0.1'
+    VERSION: '1.1.0'
   };
 }));

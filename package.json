@@ -1,7 +1,7 @@
 {
   "name": "weegloo-service-user",
-  "version": "1.0.1",
-  "description": "Weegloo ServiceLogin SDK for browser apps — Google OAuth 2.0 sign-in for app-managed members of a Weegloo Space. Pure vanilla JavaScript, zero dependencies.",
+  "version": "1.1.0",
+  "description": "Weegloo ServiceLogin SDK for browser apps - Google OAuth 2.0 sign-in for app-managed members of a Weegloo Space. Pure vanilla JavaScript, zero dependencies.",
   "keywords": [
     "weegloo",
     "weegloo-sdk",
@@ -14,29 +14,32 @@
   "license": "MIT",
   "author": "Weegloo",
   "homepage": "https://weegloo.com",
-  "main": "dist/weegloo-service-login.js",
-  "module": "dist/weegloo-service-login.esm.js",
-  "browser": "dist/weegloo-service-login.min.js",
-  "unpkg": "dist/weegloo-service-login.min.js",
-  "jsdelivr": "dist/weegloo-service-login.min.js",
+  "main": "dist/service-login.js",
+  "module": "dist/service-login.esm.js",
+  "browser": "dist/service-login.min.js",
+  "unpkg": "dist/service-login.min.js",
+  "jsdelivr": "dist/service-login.min.js",
   "exports": {
     ".": {
-      "import": "./dist/weegloo-service-login.esm.js",
-      "require": "./dist/weegloo-service-login.js",
-      "browser": "./dist/weegloo-service-login.min.js",
-      "default": "./dist/weegloo-service-login.js"
+      "import": "./dist/service-login.esm.js",
+      "require": "./dist/service-login.js",
+      "browser": "./dist/service-login.min.js",
+      "default": "./dist/service-login.js"
     },
-    "./min": "./dist/weegloo-service-login.min.js",
+    "./min": "./dist/service-login.min.js",
+    "./manifest": "./dist/manifest.json",
     "./package.json": "./package.json"
   },
   "files": [
     "dist/",
+    "src/service-login.js",
     "src/weegloo-service-login.js",
     "README.md",
     "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {
-    "prepublishOnly": "node -e \"const v=require('./package.json').version;const fs=require('fs');for(const f of ['src/weegloo-service-login.js','dist/weegloo-service-login.js','dist/weegloo-service-login.esm.js','dist/weegloo-service-login.min.js']){const t=fs.readFileSync(f,'utf8');if(t.indexOf(\\\"'\\\"+v+\\\"'\\\")<0&&t.indexOf('\\\"'+v+'\\\"')<0){throw new Error('VERSION mismatch in '+f+': package.json='+v);}console.log('OK '+f);}\""
+    "build": "node scripts/build.js",
+    "prepublishOnly": "npm run build && node -e \"const v=require('./package.json').version;const t=require('fs').readFileSync('src/service-login.js','utf8');if(t.indexOf(\\\"'\\\"+v+\\\"'\\\")<0&&t.indexOf('\\\"'+v+'\\\"')<0){throw new Error('VERSION mismatch in src/service-login.js: package.json='+v);}console.log('OK src/service-login.js (VERSION='+v+')');\""
   }
 }
