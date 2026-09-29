@@ -1,4 +1,4 @@
-// Type definitions for weegloo-service-user 1.2.0
+// Type definitions for weegloo-service-user 1.3.0
 // Weegloo ServiceLogin SDK — browser OAuth 2.0 sign-in for app-managed members
 // of a Weegloo Space. Issued Bearer Tokens are valid ONLY against ACMA / ACDA
 // (and Upload) — never CMA / CDA.
